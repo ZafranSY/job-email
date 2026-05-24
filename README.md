@@ -1,177 +1,263 @@
-# Career Operating System & Job Application AI Suite
+# Job Application AI Tool
 
-An enterprise-grade, stateful platform to generate tailored application resources, manage job pipelines, and organize high-volume job applications.
+AI-powered suite that generates tailored job application emails and optimizes resumes using the Gemini API. Supports text input, PDFs, images (with OCR), and URLs.
 
----
+## Stack
+- **Backend**: Python + FastAPI
+- **Frontend**: React.js
+- **AI**: Google Gemini 2.5 Flash (text generation & OCR)
 
-## 🛠️ Tech Stack
+## Features
+- ✉️ **Tailored Emails**: Generate high-conversion application emails based on specific job requirements.
+- 📄 **Resume Optimization**: Rewrite and align your resume to pass ATS filters for specific job descriptions.
+- 📝 **Text Input**: Paste job descriptions and resumes directly
+- 📄 **PDF Support**: Extract text from PDF files
+- 🖼️ **Image OCR**: Extract text from images using Gemini vision
+- 🌐 **URL Support**: Fetch job descriptions directly from LinkedIn, Indeed, or company career pages.
+- ⚙️ **Customization**: Choose tone (professional, enthusiastic, formal, etc.), length, and focus strategy
+- 💾 **Smart Matching**: Get relevance scores and actionable tips
 
-* **Backend**: Python + FastAPI
-* **Database & Migrations**: SQLite (default) / PostgreSQL support + SQLAlchemy 2.0 + Alembic
-* **Frontend**: React.js + Vanilla CSS (Royal Gold Dark Mode theme)
-* **AI Engine**: Google Gemini 2.5 Flash (for tailing cover letters, resume rewrite, and OCR vision)
+## Project Structure
 
----
-
-## 📋 Features
-
-### ✉️ Tailored AI Generator
-* **Resource Synthesis**: Tailor application emails/letters and rewrite resumes using the Gemini API.
-* **Omni-Channel Uploads**: Supports copy-pasted text, dynamic web job URLs (LinkedIn, Indeed, glassdoor), PDF documents, or screenshot images (OCR via Gemini Vision).
-* **Strategic Customization**: Adjust generation parameters including Tone (professional, enthusiastic, conversational), Length (short, medium, long), and Focus (balanced, skills, achievements, culture).
-
-### 🗂️ Triage Pipeline Dashboard
-* **Dual View-Modes**: Toggle seamlessly between:
-  * 🖥️ **Board (Kanban) View**: Drag/transition cards representing job statuses.
-  * 📊 **List (Dense Grid) View**: A compact, sortable, and filterable data grid designed for tracking hundreds of applications.
-* **Auto-Triage Scaling**: Automatically switches from Kanban to List View when total applications exceed 20 to preserve layout readability.
-* **Fixed Glassmorphic Details Drawer**: Click any card or row to slide out a details panel with `backdrop-filter: blur(20px)`, showing original job URLs, ingested sources, and generated covers. Includes backdrop clicks to dismiss.
-* **🔌 Direct CRUD Interactions**: Manually add applications using **"+ Quick Add Job"**, update stages inline, or delete records via custom styled alert modals.
-
----
-
-## 💾 Database Setup (SQLite & PostgreSQL)
-
-The Career Operating System defaults to a local **SQLite** database, but is fully ready to transition to **PostgreSQL** for production environments.
-
-### Option A: Using SQLite (Default)
-No extra installation is required. Running `./start.sh` or launching the backend automatically initializes `backend/career_os.db`.
-
-### Option B: Setting Up PostgreSQL
-To migrate the backend to PostgreSQL:
-
-1. **Start the PostgreSQL Service**
-   * **Using Docker (Recommended)**:
-     ```bash
-     docker run --name career-postgres -e POSTGRES_DB=career_os -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=securepassword -p 5432:5432 -d postgres
-     ```
-   * **Using Native System Packages (Linux/Ubuntu)**:
-     ```bash
-     sudo apt update && sudo apt install postgresql postgresql-contrib
-     sudo systemctl start postgresql
-     ```
-
-2. **Configure Environment Variables**
-   Update/create `backend/.env` with your PostgreSQL database URL connection string:
-   ```env
-   GEMINI_API_KEY=AIzaSy...
-   DATABASE_URL=postgresql://postgres:securepassword@localhost:5432/career_os
-   ```
-
-3. **Install PostgreSQL Adaptor**
-   Ensure `psycopg2-binary` is installed in your python environment:
-   ```bash
-   pip install psycopg2-binary
-   ```
-
-4. **Run alembic migrations**
-   ```bash
-   cd backend
-   alembic upgrade head
-   ```
-
----
-
-## ⬆️ Bulk Ingestion Pipeline (JSON Format)
-
-The dashboard supports bulk JSON uploads to import historical applications (e.g. migrating from Huntr, Teal, or Excel spreadsheets).
-
-### Accepted JSON Format
-Uploads must be structured as a JSON array of objects. Each application object accepts the following fields:
-
-| Field | Type | Required | Description / Allowed Values |
-| :--- | :--- | :--- | :--- |
-| `company_name` | String | **Yes** | Name of the target employer. |
-| `role_title` | String | No | Position title (e.g. `Software Engineer`). |
-| `status` | String | No | Pipeline status: `Applied`, `Interviewing`, `Rejected`, or `Offer` (case-insensitive, defaults to `Applied`). |
-| `job_url` | String | No | Original job posting link. |
-| `generated_text`| String | No | Pre-existing email cover draft or application context. |
-
-### Sample Import Template (`job-applied.json`)
-```json
-[
-  {
-    "company_name": "Involve Asia",
-    "role_title": "Software Engineer",
-    "status": "Applied",
-    "job_url": "https://involve.asia/careers/software-engineer"
-  },
-  {
-    "company_name": "Symple App Sdn Bhd",
-    "role_title": "Backend Developer (Spring Boot)",
-    "status": "Interviewing",
-    "job_url": "https://symple.app/jobs/backend"
-  },
-  {
-    "company_name": "Google DeepMind",
-    "role_title": "Research Engineer",
-    "status": "Offer",
-    "generated_text": "Tailored cover letter text goes here..."
-  }
-]
+```
+job-email-tool/
+├── backend/
+│   ├── main.py             # FastAPI app
+│   └── requirements.txt
+├── frontend/
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── App.js
+│   │   ├── App.css
+│   │   ├── index.js
+│   │   └── index.css
+│   └── package.json
+├── start.sh                # Start both servers (Mac/Linux)
+└── README.md
 ```
 
-To run a bulk import, click the **"Import JSON"** button in the dashboard, select your file, review the loaded preview table, and confirm ingestion.
+## Setup & Run
+
+### Prerequisites
+- Python 3.9+
+- Node.js 18+
+- A free Gemini API key from [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+
+### No external dependencies!
+Unlike traditional OCR tools, this app uses Google Gemini's vision capabilities, so there's no need to install Tesseract or other system-level OCR software.
 
 ---
 
-## 🚀 Running the Application
+### Option 1: One-command start (Mac/Linux)
 
-### Option 1: One-command Start (Mac/Linux)
-From the repository root:
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-### Option 2: Manual Start
+---
 
-#### 1. Backend Service
+### Option 2: Manual start
+
+#### Backend
 ```bash
 cd backend
+
+# Create .env file
+echo "GEMINI_API_KEY=your_api_key_here" > .env
+
+# Install dependencies and run
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-#### 2. Frontend Development Server
+#### Frontend (new terminal)
 ```bash
 cd frontend
 npm install
 npm start
 ```
-Open **`http://localhost:3000`** in your browser.
+
+Then open: http://localhost:3000
 
 ---
 
-## 📡 API Reference
+## Usage
 
-### Manual Application Ingestion
-```http
-POST /applications
-Content-Type: application/json
+1. Get your free Gemini API key from [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+2. Add it to `backend/.env`
+3. Start both backend and frontend servers
+4. In the web interface, provide the job description and your resume using one of these methods:
+   - **Text**: Paste directly
+   - **PDF**: Upload a PDF file (text extracted automatically)
+   - **Image**: Upload an image file (OCR via Gemini vision)
+   - **URL**: Paste a web link
+5. Choose tone, length, and focus strategy
+6. Click **Generate tailored email** or **Tailor my resume**
+7. Copy the result or customize further
 
-{
-  "company_name": "Company Name",
-  "role_title": "Role Title",
-  "status": "Applied",
-  "job_url": "https://joblink.com"
-}
+## API Endpoint
+
 ```
-
-### AI Generation Ingestion
-```http
 POST /generate
 Content-Type: multipart/form-data
 
 Parameters:
 - job_description_text: string (optional)
 - job_description_url: string (optional)
-- job_description_file: file (optional, PDF or Image)
+- job_description_file: file (optional, PDF or image)
 - resume_text: string (optional)
+- resume_url: string (optional)
+- resume_file: file (optional, PDF or image)
 - tone: string (professional | enthusiastic | concise | conversational | formal)
 - length: string (short | medium | long)
 - focus: string (balanced | skills | achievements | culture)
+
+Provide ONE of (text, url, or file) for each section (job description and resume).
 ```
-*(Automatically creates an application database entry with `source="ai_generated"`)*
+
+Response:
+```json
+{
+  "subject": "Compelling subject line",
+  "body": "Full email body with specific details and call to action",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6"],
+  "match_score": 85,
+  "tips": [
+    {"icon": "clock", "text": "Send on Tuesday-Thursday morning for best open rates"},
+    {"icon": "paperclip", "text": "Attach your resume as PDF named Firstname_Lastname_Resume.pdf"},
+    {"icon": "search", "text": "Research the hiring manager on LinkedIn before sending"}
+  ]
+}
+```
+
+```
+POST /tailor-resume
+Content-Type: multipart/form-data
+
+Parameters:
+- job_description_text: string (optional)
+- job_description_url: string (optional)
+- job_description_file: file (optional, PDF or image)
+- resume_text: string (optional)
+- resume_url: string (optional)
+- resume_file: file (optional, PDF or image)
+- tone: string (professional | enthusiastic | concise | conversational | formal)
+- length: string (short | medium | long)
+- focus: string (balanced | skills | achievements | culture)
+
+Provide ONE of (text, url, or file) for each section (job description and resume).
+```
+
+Response:
+```json
+{
+  "header": "Aligned Contact/Profile Info",
+  "summary": "Tailored professional summary with relevant keywords",
+  "experience": "Optimized bullet points highlighting relevant achievements",
+  "keywords": ["React", "FastAPI", "Cloud Deployment"],
+  "match_score": 92
+}
+```
+
+## Environment Variables
+
+Create a `backend/.env` file:
+```
+GEMINI_API_KEY=AIza...your_api_key...
+```
+
+**Do NOT commit this file to git** (it's already in `.gitignore`)
+
+---
+
+## 📊 Evolved Features: Pipeline & Triage Dashboard
+
+The tool has been upgraded from a simple generator into a full **Career Operating System** to persist, manage, and triage job applications over time.
+
+### 1. View Modes
+- 📋 **Pipeline Board (Kanban)**: Track job statuses across visual lanes: `Applied`, `Interviewing`, `Rejected`, and `Offer`. Transition stages instantly.
+- 🗂️ **List View (Dense Table)**: High-density, sortable table designed for managing high volumes of jobs (>20). Filters applications by stage count badges and offers instant alphabetical sorting by role or company.
+- 🔍 **Glassmorphic Floating Drawer**: Opens application details, generated letter histories, logs, and job links in a premium right-aligned floating modal without disrupting view layout.
+
+### 2. Manual Logging (+ Quick Add)
+Quickly log jobs manually directly from the dashboard header, inputting the company name, role title, initial stage, and job URL.
+
+---
+
+## 🗄️ Database Setup & Postgres Migration
+
+By default, the application runs on a local SQLite database (`backend/career_os.db`). For scaling, you can easily migrate the SQLAlchemy backend to PostgreSQL.
+
+### 1. Setting Up PostgreSQL (Docker Setup)
+To run a Postgres container locally:
+```bash
+docker run --name career-os-postgres \
+  -e POSTGRES_PASSWORD=mysecretpassword \
+  -e POSTGRES_DB=career_os \
+  -p 5432:5432 \
+  -d postgres
+```
+
+### 2. Changing the SQLAlchemy Connection String
+In `backend/database.py`, modify line 4 to target Postgres:
+```python
+# SQLite (Default)
+# SQLALCHEMY_DATABASE_URL = "sqlite:///./career_os.db"
+
+# PostgreSQL (Production/Scaling)
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:mysecretpassword@localhost:5432/career_os"
+```
+
+*Note: You must install the psycopg2 engine binary (`pip install psycopg2-binary`) in your backend virtual environment when switching to PostgreSQL.*
+
+### 3. Running & Inspecting SQL Data
+To query the database table directly:
+* **For SQLite**:
+  ```bash
+  sqlite3 backend/career_os.db
+  sqlite> SELECT * FROM applications;
+  ```
+* **For PostgreSQL**:
+  ```bash
+  docker exec -it career-os-postgres psql -U postgres -d career_os
+  career_os=# SELECT * FROM applications;
+  ```
+
+---
+
+## ⬆ Bulk JSON Ingestion Pipeline
+
+To import past job applications in bulk, click **Import JSON** in the dashboard and upload a valid JSON file.
+
+### Accepted JSON Schema Format:
+The upload expects an array of objects matching the following layout:
+```json
+[
+  {
+    "company_name": "Involve Asia",
+    "role_title": "Software Engineer",
+    "status": "Applied",
+    "job_url": "https://involve.asia/careers/software-engineer",
+    "generated_text": "Cover letter context here..."
+  },
+  {
+    "company_name": "Google DeepMind",
+    "role_title": "Research Engineer",
+    "status": "Interviewing",
+    "job_url": "https://deepmind.google/careers",
+    "generated_text": "Draft letter context here..."
+  }
+]
+```
+
+### Field Definitions:
+- `company_name` (String, **Required**): The name of the organization.
+- `role_title` (String, Optional): The position title.
+- `status` (String, Optional): Stage of application. Allowed values: `Applied` | `Interviewing` | `Rejected` | `Offer` (Defaults to `Applied`).
+- `job_url` (String, Optional): Web address to the job post.
+- `generated_text` (String, Optional): Past tailored letter draft body.
+
