@@ -364,6 +364,56 @@ def create_manual_application(app_in: schemas.ApplicationManualCreate, db: Sessi
     return app_record
 
 
+@app.post("/applications/bulk", response_model=schemas.BulkImportResponse)
+def bulk_import_applications(items: list[schemas.BulkImportItem], db: Session = Depends(get_db)):
+    if not items:
+        raise HTTPException(status_code=400, detail="Payload is empty. Send at least one application.")
+    if len(items) > 500:
+        raise HTTPException(status_code=400, detail="Batch size exceeds limit of 500 records per request.")
+
+    # Build a dedup key set from existing records to skip exact duplicates
+    existing = db.query(
+        models.Application.company_name,
+        models.Application.role_title,
+    ).all()
+    existing_set = {(row.company_name.lower(), (row.role_title or "").lower()) for row in existing}
+
+    to_insert = []
+    skipped = 0
+
+    for idx, item in enumerate(items):
+        dedup_key = (item.company_name.lower(), (item.role_title or "").lower())
+        if dedup_key in existing_set:
+            skipped += 1
+            continue
+
+        to_insert.append(models.Application(
+            company_name=item.company_name,
+            role_title=item.role_title,
+            status=item.status or "Applied",
+            job_url=item.job_url,
+            source="bulk_import",
+            created_at=item.created_at,
+        ))
+        existing_set.add(dedup_key)  # prevent intra-batch duplicates too
+
+    if not to_insert:
+        return schemas.BulkImportResponse(
+            imported=0,
+            skipped=skipped,
+            message=f"All {skipped} record(s) already exist in the database. Nothing new was added."
+        )
+
+    db.add_all(to_insert)
+    db.commit()
+
+    return schemas.BulkImportResponse(
+        imported=len(to_insert),
+        skipped=skipped,
+        message=f"Successfully imported {len(to_insert)} application(s). Skipped {skipped} duplicate(s)."
+    )
+
+
 @app.get("/applications", response_model=list[schemas.ApplicationResponse])
 def get_applications(db: Session = Depends(get_db)):
     return db.query(models.Application).order_by(models.Application.created_at.desc()).all()
