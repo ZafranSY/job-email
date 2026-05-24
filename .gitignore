@@ -61,3 +61,7 @@ coverage/
 *.db
 *.sqlite
 *.sqlite3
+backend/career_os.db
+
+# Logs
+*.log
