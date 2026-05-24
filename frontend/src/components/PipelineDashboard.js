@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const STAGES = ['Applied', 'Interviewing', 'Rejected', 'Offer'];
 
@@ -18,6 +18,23 @@ export default function PipelineDashboard() {
   });
   const [quickAddError, setQuickAddError] = useState('');
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
+
+  // Bulk Import State
+  const fileInputRef = useRef(null);
+  const [importPreview, setImportPreview] = useState(null); // { count, data[] }
+  const [importError, setImportError] = useState('');
+  const [importSubmitting, setImportSubmitting] = useState(false);
+  const [showImportPreview, setShowImportPreview] = useState(false);
+
+  // Toast Notification State
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', message: string }
+  const toastTimeout = useRef(null);
+
+  const showToast = useCallback((type, message) => {
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    setToast({ type, message });
+    toastTimeout.current = setTimeout(() => setToast(null), 4500);
+  }, []);
 
   useEffect(() => {
     fetchApplications();
@@ -120,6 +137,70 @@ export default function PipelineDashboard() {
     }
   };
 
+  const handleImportFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = ''; // reset so same file can be re-selected
+    if (!file) return;
+
+    setImportError('');
+    setImportPreview(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+        if (!Array.isArray(parsed)) {
+          setImportError('Invalid format — expected a JSON array at the top level.');
+          return;
+        }
+        if (parsed.length === 0) {
+          setImportError('The JSON file is empty.');
+          return;
+        }
+        if (parsed.length > 500) {
+          setImportError(`Too many records (${parsed.length}). Max allowed is 500 per import.`);
+          return;
+        }
+        // Quick client-side sanity check
+        const invalid = parsed.filter(r => !r.company_name);
+        if (invalid.length > 0) {
+          setImportError(`${invalid.length} record(s) are missing the required "company_name" field.`);
+          return;
+        }
+        setImportPreview({ count: parsed.length, data: parsed });
+        setShowImportPreview(true);
+      } catch {
+        setImportError('Could not parse the file — make sure it is valid JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importPreview) return;
+    try {
+      setImportSubmitting(true);
+      const res = await fetch('/applications/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(importPreview.data),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.detail || 'Import failed.');
+      }
+      setShowImportPreview(false);
+      setImportPreview(null);
+      await fetchApplications();
+      showToast('success', result.message);
+    } catch (err) {
+      showToast('error', err.message);
+    } finally {
+      setImportSubmitting(false);
+    }
+  };
+
   // Group applications by status
   const columns = STAGES.reduce((acc, stage) => {
     acc[stage] = applications.filter(
@@ -148,13 +229,29 @@ export default function PipelineDashboard() {
           <h1 className="page-title">Career Pipeline Dashboard</h1>
           <p className="page-sub">Track and update the stages of all cover letters generated for your active applications.</p>
         </div>
-        <button 
-          className="gen-btn" 
-          onClick={() => setShowQuickAdd(true)}
-          style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <span>+</span> Quick Add Job
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleImportFileChange}
+          />
+          <button
+            className="action-btn"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            ↑ Import JSON
+          </button>
+          <button 
+            className="gen-btn" 
+            onClick={() => setShowQuickAdd(true)}
+            style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <span>+</span> Quick Add Job
+          </button>
+        </div>
       </header>
 
       {error && <div className="error-box">⚠ {error}</div>}
@@ -385,7 +482,94 @@ export default function PipelineDashboard() {
           </div>
         </div>
       )}
+
+      {/* Import Preview Confirmation Modal */}
+      {showImportPreview && importPreview && (
+        <div className="modal-backdrop" onClick={() => { setShowImportPreview(false); setImportPreview(null); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Import Preview</h3>
+            <div className="import-preview-badge">
+              <span className="import-count">{importPreview.count}</span>
+              <span>application{importPreview.count !== 1 ? 's' : ''} found in file</span>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '12px 0 0', lineHeight: 1.6 }}>
+              Duplicates (matched by company + role) will be skipped automatically. 
+              Click <strong>Import</strong> to proceed.
+            </p>
+
+            {/* Scrollable preview table */}
+            <div className="import-preview-table-wrap">
+              <table className="import-preview-table">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.data.slice(0, 8).map((row, i) => (
+                    <tr key={i}>
+                      <td>{row.company_name}</td>
+                      <td>{row.role_title || '—'}</td>
+                      <td>{row.status || 'Applied'}</td>
+                    </tr>
+                  ))}
+                  {importPreview.count > 8 && (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        + {importPreview.count - 8} more record(s) not shown
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '24px' }}>
+              <button
+                className="action-btn"
+                onClick={() => { setShowImportPreview(false); setImportPreview(null); }}
+                disabled={importSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="gen-btn"
+                style={{ margin: 0, padding: '10px 20px', width: 'auto' }}
+                onClick={handleImportSubmit}
+                disabled={importSubmitting}
+              >
+                {importSubmitting ? 'Importing...' : `Import ${importPreview.count} Record${importPreview.count !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Parse Error */}
+      {importError && (
+        <div className="modal-backdrop" onClick={() => setImportError('')}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Import Error</h3>
+            <p style={{ color: 'var(--danger, #ef4444)', fontSize: '14px', margin: '12px 0 24px', lineHeight: 1.6 }}>
+              ⚠ {importError}
+            </p>
+            <div className="modal-actions">
+              <button className="gen-btn danger" style={{ margin: 0, padding: '10px 20px', width: 'auto' }} onClick={() => setImportError('')}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.type === 'success' ? '✓' : '⚠'} {toast.message}
+        </div>
+      )}
     </>
   );
 }
-
