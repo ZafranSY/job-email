@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ApplicationTable from './ApplicationTable';
 
 const STAGES = ['Applied', 'Interviewing', 'Rejected', 'Offer'];
 
@@ -35,6 +36,15 @@ export default function PipelineDashboard() {
     setToast({ type, message });
     toastTimeout.current = setTimeout(() => setToast(null), 4500);
   }, []);
+
+  // View Mode: 'kanban' | 'table' — auto-switch to table when > 20 apps
+  const [viewMode, setViewMode] = useState('kanban');
+  useEffect(() => {
+    if (applications.length > 20 && viewMode === 'kanban') {
+      setViewMode('table');
+    }
+  // eslint-disable-next-line
+  }, [applications.length]);
 
   useEffect(() => {
     fetchApplications();
@@ -230,6 +240,24 @@ export default function PipelineDashboard() {
           <p className="page-sub">Track and update the stages of all cover letters generated for your active applications.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* View Toggle */}
+          <div className="view-toggle">
+            <button
+              className={`view-toggle-btn ${viewMode === 'kanban' ? 'active' : ''}`}
+              onClick={() => setViewMode('kanban')}
+              title="Board view"
+            >
+              ▦ Board
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="List view"
+            >
+              ≡ List
+            </button>
+          </div>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -263,140 +291,154 @@ export default function PipelineDashboard() {
         </div>
       ) : (
         <div className="dashboard-container">
-          {/* Kanban Board */}
-          <div className="kanban-board">
-            {STAGES.map(stage => {
-              const items = columns[stage] || [];
-              return (
-                <div key={stage} className={`kanban-column stage-${stage.toLowerCase()}`}>
-                  <div className="column-header">
-                    <span className="column-dot"></span>
-                    <h3 className="column-title">{stage}</h3>
-                    <span className="column-count">{items.length}</span>
-                  </div>
+          {viewMode === 'table' ? (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <ApplicationTable
+                applications={applications}
+                onStatusChange={updateStatus}
+                onDelete={deleteApplication}
+                onRowClick={setActiveDetails}
+                activeId={activeDetails?.id}
+              />
+            </div>
+          ) : (
+            <div className="kanban-board">
+              {STAGES.map(stage => {
+                const items = columns[stage] || [];
+                return (
+                  <div key={stage} className={`kanban-column stage-${stage.toLowerCase()}`}>
+                    <div className="column-header">
+                      <span className="column-dot"></span>
+                      <h3 className="column-title">{stage}</h3>
+                      <span className="column-count">{items.length}</span>
+                    </div>
 
-                  <div className="column-cards">
-                    {items.length === 0 ? (
-                      <div className="empty-column-placeholder">No applications</div>
-                    ) : (
-                      items.map(app => (
-                        <div 
-                          key={app.id} 
-                          className={`kanban-card ${activeDetails?.id === app.id ? 'selected' : ''}`}
-                          onClick={() => setActiveDetails(app)}
-                        >
-                          <div className="card-top">
-                            <span className="card-company">{app.company_name}</span>
-                            <span className="card-date">{formatDate(app.created_at)}</span>
+                    <div className="column-cards">
+                      {items.length === 0 ? (
+                        <div className="empty-column-placeholder">No applications</div>
+                      ) : (
+                        items.map(app => (
+                          <div 
+                            key={app.id} 
+                            className={`kanban-card ${activeDetails?.id === app.id ? 'selected' : ''}`}
+                            onClick={() => setActiveDetails(app)}
+                          >
+                            <div className="card-top">
+                              <span className="card-company">{app.company_name}</span>
+                              <span className="card-date">{formatDate(app.created_at)}</span>
+                            </div>
+                            <h4 className="card-role">{app.role_title}</h4>
+
+                            <div className="card-actions" onClick={e => e.stopPropagation()}>
+                              <select 
+                                className="status-select-micro" 
+                                value={app.status}
+                                onChange={e => updateStatus(app.id, e.target.value)}
+                              >
+                                {STAGES.map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                              <button 
+                                className="delete-btn-micro"
+                                onClick={() => deleteApplication(app.id)}
+                                title="Delete Application"
+                              >
+                                🗑
+                              </button>
+                            </div>
                           </div>
-                          <h4 className="card-role">{app.role_title}</h4>
-
-                          <div className="card-actions" onClick={e => e.stopPropagation()}>
-                            <select 
-                              className="status-select-micro" 
-                              value={app.status}
-                              onChange={e => updateStatus(app.id, e.target.value)}
-                            >
-                              {STAGES.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                              ))}
-                            </select>
-                            <button 
-                              className="delete-btn-micro"
-                              onClick={() => deleteApplication(app.id)}
-                              title="Delete Application"
-                            >
-                              🗑
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Details Overlay Panel if activeDetails is selected */}
-          {activeDetails && (
-            <div className="details-drawer">
-              <div className="details-drawer-header">
-                <h3>Application Details</h3>
-                <button className="close-btn" onClick={() => setActiveDetails(null)}>✕</button>
-              </div>
-              <div className="details-drawer-body">
-                <div className="detail-meta-row">
-                  <div>
-                    <label className="field-label">Company</label>
-                    <div className="detail-value text-gold">{activeDetails.company_name}</div>
-                  </div>
-                  <div>
-                    <label className="field-label">Role</label>
-                    <div className="detail-value">{activeDetails.role_title}</div>
-                  </div>
-                </div>
-                <div className="detail-meta-row">
-                  <div>
-                    <label className="field-label">Applied Date</label>
-                    <div className="detail-value">{formatDate(activeDetails.created_at)}</div>
-                  </div>
-                  <div>
-                    <label className="field-label">Pipeline Status</label>
-                    <select 
-                      className="select" 
-                      value={activeDetails.status}
-                      onChange={e => updateStatus(activeDetails.id, e.target.value)}
-                    >
-                      {STAGES.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="detail-meta-row">
-                  <div>
-                    <label className="field-label">Source</label>
-                    <div className="detail-value" style={{ textTransform: 'capitalize' }}>
-                      {activeDetails.source === 'manual' ? '🔌 Manual Log' : '✦ AI Generated'}
+                        ))
+                      )}
                     </div>
                   </div>
-                  {activeDetails.job_url && (
+                );
+              })}
+            </div>
+          )}
+
+          {/* Details Drawer - shown in both kanban and table view */}
+          {activeDetails && (
+            <div className="drawer-backdrop" onClick={() => setActiveDetails(null)}>
+              <div className="details-drawer" onClick={e => e.stopPropagation()}>
+                <div className="details-drawer-header">
+                  <h3>Application Details</h3>
+                  <button className="close-btn" onClick={() => setActiveDetails(null)}>✕</button>
+                </div>
+                <div className="details-drawer-body">
+                  <div className="detail-meta-row">
                     <div>
-                      <label className="field-label">Job Link</label>
-                      <div className="detail-value">
-                        <a href={activeDetails.job_url} target="_blank" rel="noopener noreferrer" className="text-gold" style={{ textDecoration: 'underline' }}>
-                          Open Job Link ↗
-                        </a>
+                      <label className="field-label">Company</label>
+                      <div className="detail-value text-gold">{activeDetails.company_name}</div>
+                    </div>
+                    <div>
+                      <label className="field-label">Role</label>
+                      <div className="detail-value">{activeDetails.role_title}</div>
+                    </div>
+                  </div>
+                  <div className="detail-meta-row">
+                    <div>
+                      <label className="field-label">Applied Date</label>
+                      <div className="detail-value">{formatDate(activeDetails.created_at)}</div>
+                    </div>
+                    <div>
+                      <label className="field-label">Pipeline Status</label>
+                      <select
+                        className="select"
+                        value={activeDetails.status}
+                        onChange={e => updateStatus(activeDetails.id, e.target.value)}
+                      >
+                        {STAGES.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="detail-meta-row">
+                    <div>
+                      <label className="field-label">Source</label>
+                      <div className="detail-value" style={{ textTransform: 'capitalize' }}>
+                        {activeDetails.source === 'manual' ? '🔌 Manual Log'
+                          : activeDetails.source === 'bulk_import' ? '⬆ Bulk Import'
+                          : '✦ AI Generated'}
+                      </div>
+                    </div>
+                    {activeDetails.job_url && (
+                      <div>
+                        <label className="field-label">Job Link</label>
+                        <div className="detail-value">
+                          <a href={activeDetails.job_url} target="_blank" rel="noopener noreferrer" className="text-gold" style={{ textDecoration: 'underline' }}>
+                            Open Job Link ↗
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {activeDetails.generated_text && (
+                    <div className="detail-block">
+                      <label className="field-label">Generated Text Context</label>
+                      <div className="email-card">
+                        <pre className="email-body">{activeDetails.generated_text}</pre>
                       </div>
                     </div>
                   )}
-                </div>
 
-                {activeDetails.generated_text && (
-                  <div className="detail-block">
-                    <label className="field-label">Generated Text Context</label>
-                    <div className="email-card">
-                      <pre className="email-body">{activeDetails.generated_text}</pre>
-                    </div>
+                  <div className="drawer-footer">
+                    <button
+                      className="gen-btn danger"
+                      onClick={() => deleteApplication(activeDetails.id)}
+                    >
+                      Remove From Board
+                    </button>
                   </div>
-                )}
-
-                <div className="drawer-footer">
-                  <button 
-                    className="gen-btn danger" 
-                    onClick={() => deleteApplication(activeDetails.id)}
-                  >
-                    Remove From Board
-                  </button>
                 </div>
               </div>
             </div>
           )}
         </div>
       )}
-
       {deleteId && (
         <div className="modal-backdrop">
           <div className="modal-content">
