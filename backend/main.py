@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -14,10 +14,18 @@ from PIL import Image
 import io
 import base64
 from typing import Optional
+from sqlalchemy.orm import Session
+
+from database import engine, get_db
+import models
+import schemas
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+# Autocreate database tables on startup (as a fallback safety)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Job Application Email Generator")
 
@@ -28,6 +36,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # ===== Helper Functions =====
@@ -196,6 +205,8 @@ class ResumeResponse(BaseModel):
 
 @app.post("/generate", response_model=EmailResponse)
 async def generate_email(
+    company_name: str = Form(...),
+    role_title: Optional[str] = Form(None),
     job_description_text: Optional[str] = Form(None),
     job_description_url: Optional[str] = Form(None),
     job_description_file: Optional[UploadFile] = File(None),
@@ -205,6 +216,7 @@ async def generate_email(
     tone: str = Form("professional"),
     length: str = Form("medium"),
     focus: str = Form("balanced"),
+    db: Session = Depends(get_db),
 ):
     """
     Generate a job application email.
@@ -249,6 +261,19 @@ async def generate_email(
 
         data = json.loads(raw)
 
+        # Autonomously persist new Application record representing this event
+        app_model = models.Application(
+            company_name=company_name,
+            role_title=role_title or "Software Engineer",
+            status="Applied",
+            resume_used=resume[:1000] if resume else None,
+            generated_text=f"Subject: {data.get('subject', '')}\n\n{data.get('body', '')}",
+            source="ai_generated"
+        )
+        db.add(app_model)
+        db.commit()
+        db.refresh(app_model)
+
         return EmailResponse(
             subject=data.get("subject", ""),
             body=data.get("body", ""),
@@ -256,6 +281,7 @@ async def generate_email(
             match_score=int(data.get("match_score", 0)),
             tips=data.get("tips", []),
         )
+
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Failed to parse AI response. Please try again.")
@@ -323,6 +349,48 @@ async def tailor_resume(
         raise HTTPException(status_code=500, detail="AI returned invalid JSON")
 
 
+@app.post("/applications", response_model=schemas.ApplicationResponse)
+def create_manual_application(app_in: schemas.ApplicationManualCreate, db: Session = Depends(get_db)):
+    app_record = models.Application(
+        company_name=app_in.company_name,
+        role_title=app_in.role_title or "Software Engineer",
+        status=app_in.status or "Applied",
+        job_url=app_in.job_url,
+        source="manual"
+    )
+    db.add(app_record)
+    db.commit()
+    db.refresh(app_record)
+    return app_record
+
+
+@app.get("/applications", response_model=list[schemas.ApplicationResponse])
+def get_applications(db: Session = Depends(get_db)):
+    return db.query(models.Application).order_by(models.Application.created_at.desc()).all()
+
+@app.patch("/applications/{id}/status", response_model=schemas.ApplicationResponse)
+def update_application_status(id: int, status_update: schemas.StatusUpdate, db: Session = Depends(get_db)):
+    app_record = db.query(models.Application).filter(models.Application.id == id).first()
+    if not app_record:
+        raise HTTPException(status_code=404, detail="Application not found")
+    # Clean the input status (capitalize first letter to match Kanban header e.g. "Applied")
+    cleaned_status = status_update.status.strip().title()
+    app_record.status = cleaned_status
+    db.commit()
+    db.refresh(app_record)
+    return app_record
+
+@app.delete("/applications/{id}")
+def delete_application(id: int, db: Session = Depends(get_db)):
+    app_record = db.query(models.Application).filter(models.Application.id == id).first()
+    if not app_record:
+        raise HTTPException(status_code=404, detail="Application not found")
+    db.delete(app_record)
+    db.commit()
+    return {"status": "success", "message": f"Deleted application {id}"}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "api_key_set": bool(GEMINI_API_KEY)}
+
