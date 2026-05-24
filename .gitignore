@@ -57,3 +57,7 @@ Thumbs.db
 coverage/
 .eslintcache
 
+# Databases
+*.db
+*.sqlite
+*.sqlite3
