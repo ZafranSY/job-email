@@ -1,0 +1,24 @@
+name: Deploy Job Email
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy files to production folder
+        run: |
+          sudo rm -rf /opt/homelab/compose/job-email/*
+          sudo cp -R . /opt/homelab/compose/job-email/
+
+      - name: Deploy Docker container
+        run: |
+          cd /opt/homelab/compose/job-email
+          sudo docker compose up --build -d
