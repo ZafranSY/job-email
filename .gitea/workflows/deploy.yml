@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        env:
+          GIT_SSL_NO_VERIFY: "true" # 👈 Add these two lines to bypass the SSL certificate block!
 
       - name: Distribute Artifacts and Orchestrate Stack
         run: |
