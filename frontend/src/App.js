@@ -21,24 +21,24 @@ export default function App() {
         setFocus={setFocus}
       >
         <Routes>
-          <Route 
-            path="/generator" 
+          <Route
+            path="/generator"
             element={
-              <JobGenerator 
-                tone={tone} 
-                length={length} 
-                focus={focus} 
+              <JobGenerator
+                tone={tone}
+                length={length}
+                focus={focus}
               />
-            } 
+            }
           />
-          <Route 
-            path="/dashboard" 
-            element={<PipelineDashboard />} 
+          <Route
+            path="/dashboard"
+            element={<PipelineDashboard />}
           />
-          {/* Redirect from root to generator */}
-          <Route 
-            path="*" 
-            element={<Navigate to="/generator" replace />} 
+          {/* Redirect from root sto generator */}
+          <Route
+            path="*"
+            element={<Navigate to="/generator" replace />}
           />
         </Routes>
       </MasterLayout>
