@@ -13,8 +13,7 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         env:
-          GIT_SSL_NO_VERIFY: "true" # 👈 Add these two lines to bypass the SSL certificate block!
-
+          GIT_SSL_NO_VERIFY: "true" 
       - name: Distribute Artifacts and Orchestrate Stack
         run: |
           # 1. Enforce target deployment tracking layouts
