@@ -1,0 +1,9 @@
+services:
+  job-email:
+    build: .
+    container_name: job-email
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production

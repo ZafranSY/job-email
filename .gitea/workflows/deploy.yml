@@ -10,22 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy files to production folder
+      - name: Build Docker image
         run: |
-          sudo rm -rf /opt/homelab/compose/job-email/*
-          sudo cp -R . /opt/homelab/compose/job-email/
+          docker build -t job-email:latest .
 
-      - name: Deploy Docker container
+      - name: Stop old container
         run: |
-          mkdir -p /opt/homelab/compose/job-email
+          docker stop job-email || true
+          docker rm job-email || true
 
-          rm -rf /opt/homelab/compose/job-email/*
-
-          cp -R . /opt/homelab/compose/job-email/
-
-          cd /opt/homelab/compose/job-email
-
-          docker compose up --build -d
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name job-email \
+            --restart unless-stopped \
+            -p 3001:3000 \
+            job-email:latest
