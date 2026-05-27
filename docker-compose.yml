@@ -1,9 +1,29 @@
 services:
-  job-email:
-    build: .
-    container_name: job-email
+  backend:
+    build: ./backend
+    container_name: job-email-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /opt/homelab/data/job-email:/app/data
+    environment:
+      - SQLALCHEMY_DATABASE_URL=sqlite:///./data/career_os.db
+      - NODE_ENV=production
+    networks:
+      - homelab
+
+  frontend:
+    build: ./frontend
+    container_name: job-email-frontend
     restart: unless-stopped
     ports:
       - "3001:3000"
     environment:
       - NODE_ENV=production
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

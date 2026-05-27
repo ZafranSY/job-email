@@ -1,4 +1,4 @@
-name: Deploy Job Email
+name: Deploy Job Email Suite
 
 on:
   push:
@@ -10,22 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: Distribute Artifacts and Orchestrate Stack
         run: |
-          docker build -t job-email:latest .
-
-      - name: Stop old container
-        run: |
-          docker stop job-email || true
-          docker rm job-email || true
-
-      - name: Run new container
-        run: |
-          docker run -d \
-            --name job-email \
-            --restart unless-stopped \
-            -p 3001:3000 \
-            job-email:latest
+          # 1. Enforce target deployment tracking layouts
+          mkdir -p /opt/homelab/compose/job-email
+          mkdir -p /opt/homelab/data/job-email
+          
+          # 2. Flush and sync fresh workspace assets across layers
+          rm -rf /opt/homelab/compose/job-email/*
+          cp -R . /opt/homelab/compose/job-email/
+          
+          # 3. Hand over execution mechanics to the Docker Engine daemon
+          cd /opt/homelab/compose/job-email
+          docker compose down || true
+          docker compose up --build -d
