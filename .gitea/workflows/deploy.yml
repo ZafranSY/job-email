@@ -20,5 +20,12 @@ jobs:
 
       - name: Deploy Docker container
         run: |
+          mkdir -p /opt/homelab/compose/job-email
+
+          rm -rf /opt/homelab/compose/job-email/*
+
+          cp -R . /opt/homelab/compose/job-email/
+
           cd /opt/homelab/compose/job-email
-          sudo docker compose up --build -d
+
+          docker compose up --build -d
