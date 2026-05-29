@@ -7,13 +7,23 @@ VALID_STATUSES = {"Applied", "Interviewing", "Rejected", "Offer"}
 # Normalization map: accept common user variants and map them to our enum values
 STATUS_ALIAS_MAP = {
     "applied": "Applied",
+    "application viewed": "Applied",
+    "viewed": "Applied",
+    "resume downloaded": "Applied",
+    
     "interviewing": "Interviewing",
     "interview": "Interviewing",
+    
     "rejected": "Rejected",
     "reject": "Rejected",
+    "not selected by employer": "Rejected",
+    "not selected": "Rejected",
+    "declined": "Rejected",
+    
     "offer": "Offer",
     "hired": "Offer",
     "accepted": "Offer",
+    "offered": "Offer",
 }
 
 class ApplicationCreate(BaseModel):

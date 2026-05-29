@@ -198,7 +198,23 @@ export default function PipelineDashboard() {
       });
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.detail || 'Import failed.');
+        let errorMsg = 'Import failed.';
+        if (result.detail) {
+          if (Array.isArray(result.detail)) {
+            errorMsg = result.detail.map(d => {
+              if (d.loc && d.loc[0] === 'body' && typeof d.loc[1] === 'number') {
+                const rowIndex = d.loc[1] + 1;
+                const field = d.loc[2] || '';
+                return `Row ${rowIndex}${field ? ` (${field})` : ''}: ${d.msg}`;
+              }
+              const field = d.loc ? d.loc.slice(1).join('.') : '';
+              return `${field ? `${field}: ` : ''}${d.msg}`;
+            }).join(' | ');
+          } else if (typeof result.detail === 'string') {
+            errorMsg = result.detail;
+          }
+        }
+        throw new Error(errorMsg);
       }
       setShowImportPreview(false);
       setImportPreview(null);

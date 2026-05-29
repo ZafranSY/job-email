@@ -1,7 +1,82 @@
 [
     {
+        "company_name": "Skill Quotient Technologies Inc",
+        "role_title": "Java Developer",
+        "status": "Applied",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Kuala Lumpur",
+        "source": "Indeed",
+        "applied_date": "Thursday"
+    },
+    {
+        "company_name": "InsiderSecurity",
+        "role_title": "Software Engineer",
+        "status": "Applied",
+        "job_url": "",
+        "generated_text": "",
+        "location": "KL Eco City",
+        "source": "Indeed",
+        "applied_date": "Thursday"
+    },
+    {
+        "company_name": "Fuku",
+        "role_title": "Full Stack Engineer",
+        "status": "Applied",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Kuala Lumpur",
+        "source": "Indeed",
+        "applied_date": "Thursday"
+    },
+    {
+        "company_name": "Bitlab Digital",
+        "role_title": "Vue.js Frontend Engineer",
+        "status": "Application viewed",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Kuala Lumpur",
+        "source": "Indeed",
+        "applied_date": "Thursday"
+    },
+    {
+        "company_name": "Linexcom Sdn Bhd",
+        "role_title": "Junior Full Stack Developer (PHP / Laravel)",
+        "status": "Not selected by employer",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Petaling Jaya",
+        "source": "Indeed",
+        "applied_date": "Thursday"
+    },
+    {
+        "company_name": "HEYJOM SDN BHD",
+        "role_title": "Full Stack Developer",
+        "status": "Applied",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Petaling Jaya",
+        "source": "Indeed",
+        "applied_date": "Thursday"
+    },
+    {
+        "company_name": "Mazars Asia Pacific Services Sdn Bhd",
+        "role_title": "IT Software Engineer Junior",
+        "status": "Applied",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Kuala Lumpur",
+        "source": "Indeed",
+        "applied_date": "Monday"
+    },
+    {
         "company_name": "Symple App Sdn Bhd",
         "role_title": "BackEnd Developer (Spring Boot)",
-        "status": "Applied"
+        "status": "Application viewed",
+        "job_url": "",
+        "generated_text": "",
+        "location": "Puchong",
+        "source": "Indeed",
+        "applied_date": "Sunday"
     }
 ]
